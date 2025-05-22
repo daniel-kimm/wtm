@@ -406,29 +406,27 @@ function AppContent() {
   };
 
   const handleVote = async (id: number, voteType: 'up' | 'down') => {
-    let voteChange = 0;
-    setParties(prev => prev.map(party => {
-      if (party.id === id) {
-        const currentVote = userVotes[id] || null;
-        if (currentVote === voteType) {
-          voteChange = voteType === 'up' ? -1 : 1;
-          setUserVotes(prev => ({ ...prev, [id]: null }));
-        } else if (currentVote === null) {
-          voteChange = voteType === 'up' ? 1 : -1;
-          setUserVotes(prev => ({ ...prev, [id]: voteType }));
-        } else {
-          voteChange = voteType === 'up' ? 2 : -2;
-          setUserVotes(prev => ({ ...prev, [id]: voteType }));
-        }
-        return { ...party, votes: party.votes + voteChange };
-      }
-      return party;
-    }));
-
-    // Persist the new vote count to Supabase
+    // Find the party in the current state
     const party = parties.find(p => p.id === id);
     if (!party) return;
+
+    const currentVote = userVotes[id] || null;
+    let voteChange = 0;
+
+    if (currentVote === voteType) {
+      voteChange = voteType === 'up' ? -1 : 1;
+      setUserVotes(prev => ({ ...prev, [id]: null }));
+    } else if (currentVote === null) {
+      voteChange = voteType === 'up' ? 1 : -1;
+      setUserVotes(prev => ({ ...prev, [id]: voteType }));
+    } else {
+      voteChange = voteType === 'up' ? 2 : -2;
+      setUserVotes(prev => ({ ...prev, [id]: voteType }));
+    }
+
     const newVoteCount = party.votes + voteChange;
+
+    // Persist the new vote count to Supabase
     const { error } = await supabase
       .from('parties')
       .update({ votes: newVoteCount })
