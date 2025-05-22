@@ -424,9 +424,15 @@ function AppContent() {
       setUserVotes(prev => ({ ...prev, [id]: voteType }));
     }
 
-    const newVoteCount = party.votes + voteChange;
+    // Optimistically update the UI
+    setParties(prev =>
+      prev.map(p =>
+        p.id === id ? { ...p, votes: p.votes + voteChange } : p
+      )
+    );
 
     // Persist the new vote count to Supabase
+    const newVoteCount = party.votes + voteChange;
     const { error } = await supabase
       .from('parties')
       .update({ votes: newVoteCount })
@@ -434,6 +440,7 @@ function AppContent() {
 
     if (error) {
       console.error('Error updating votes:', error);
+      // Optionally, revert the optimistic update here if you want
       return;
     }
 
