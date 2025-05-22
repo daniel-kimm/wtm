@@ -257,7 +257,7 @@ function AppContent() {
         await ensureUserProfile();
         // Fetch parties with comments
         const { data: partiesData, error: partiesError } = await supabase
-          .from('parties_with_users')
+          .from('parties_with_votes')
           .select('*')
           .order('date', { ascending: true });
         if (partiesError) throw partiesError;
@@ -434,7 +434,7 @@ function AppContent() {
       const fetchPartiesWithRetry = async (retries = 3, delay = 500) => {
         for (let i = 0; i < retries; i++) {
           const { data: partiesData, error: partiesError } = await supabase
-            .from('parties_with_users')
+            .from('parties_with_votes')
             .select('*')
             .order('date', { ascending: true });
 
@@ -457,7 +457,7 @@ function AppContent() {
         }
         // Final attempt (even if not found)
         const { data: partiesData } = await supabase
-          .from('parties_with_users')
+          .from('parties_with_votes')
           .select('*')
           .order('date', { ascending: true });
         if (Array.isArray(partiesData)) setParties(partiesData);
