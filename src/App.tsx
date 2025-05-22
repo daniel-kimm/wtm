@@ -259,6 +259,7 @@ function AppContent() {
         const { data: partiesData, error: partiesError } = await supabase
           .from('parties_with_votes')
           .select('*')
+          .order('votes', { ascending: false })
           .order('date', { ascending: true });
         if (partiesError) throw partiesError;
         // Fetch comments for each party
@@ -436,6 +437,7 @@ function AppContent() {
           const { data: partiesData, error: partiesError } = await supabase
             .from('parties_with_votes')
             .select('*')
+            .order('votes', { ascending: false })
             .order('date', { ascending: true });
 
           // If the new party is present and has latitude/longitude, update state and return
@@ -459,6 +461,7 @@ function AppContent() {
         const { data: partiesData } = await supabase
           .from('parties_with_votes')
           .select('*')
+          .order('votes', { ascending: false })
           .order('date', { ascending: true });
         if (Array.isArray(partiesData)) setParties(partiesData);
       };
