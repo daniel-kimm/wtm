@@ -165,6 +165,12 @@ const defaultCenter = {
   lng: -87.6753
 };
 
+// Add a new interface for user votes from the party_votes table
+interface PartyVote {
+  party_id: number;
+  vote_type: 'up' | 'down';
+}
+
 function AppContent() {
   const { user, signInWithGoogle, signOut } = useAuth();
   const [parties, setParties] = useState<Party[]>([]);
@@ -241,26 +247,20 @@ function AppContent() {
     setMarkers(newMarkers);
   }, [parties, map]);
 
-  // Fetch parties when component mounts or when user changes
+  // Fetch parties and user votes on mount or when user changes
   useEffect(() => {
     const initializeData = async () => {
       if (!user) return;
-      
       setIsLoading(true);
       setError(null);
-      
       try {
-        // Ensure user profile exists
         await ensureUserProfile();
-
         // Fetch parties with comments
         const { data: partiesData, error: partiesError } = await supabase
           .from('parties_with_users')
           .select('*')
           .order('date', { ascending: true });
-
         if (partiesError) throw partiesError;
-
         // Fetch comments for each party
         const partiesWithComments = await Promise.all(
           partiesData.map(async (party) => {
@@ -269,13 +269,23 @@ function AppContent() {
               .select('*')
               .eq('party_id', party.id)
               .order('created_at', { ascending: true });
-
             if (commentsError) throw commentsError;
             return { ...party, comments };
           })
         );
-
         setParties(partiesWithComments);
+        // Fetch user votes
+        const { data: votesData, error: votesError } = await supabase
+          .from('party_votes')
+          .select('party_id, vote_type')
+          .eq('user_id', user.id);
+        if (votesError) throw votesError;
+        // Map to { [partyId]: 'up' | 'down' }
+        const votesMap: UserVotes = {};
+        votesData.forEach((vote: PartyVote) => {
+          votesMap[vote.party_id] = vote.vote_type;
+        });
+        setUserVotes(votesMap);
       } catch (error) {
         console.error('Error initializing data:', error);
         setError('Failed to load data. Please try again later.');
@@ -283,9 +293,65 @@ function AppContent() {
         setIsLoading(false);
       }
     };
-
     initializeData();
   }, [user]);
+
+  // Helper to aggregate votes for each party
+  const aggregateVotes = async () => {
+    // Fetch all votes for all parties
+    const { data: allVotes, error: allVotesError } = await supabase
+      .from('party_votes')
+      .select('party_id, vote_type');
+    if (allVotesError) {
+      console.error('Error fetching all votes:', allVotesError);
+      return;
+    }
+    // Aggregate votes
+    const voteCounts: { [partyId: number]: number } = {};
+    allVotes.forEach((vote: PartyVote) => {
+      if (!voteCounts[vote.party_id]) voteCounts[vote.party_id] = 0;
+      voteCounts[vote.party_id] += vote.vote_type === 'up' ? 1 : -1;
+    });
+    // Update parties state with new vote counts
+    setParties(prev => prev.map(party => ({ ...party, votes: voteCounts[party.id] || 0 })));
+  };
+
+  // Update votes after voting
+  const handleVote = async (id: number, voteType: 'up' | 'down') => {
+    if (!user) return;
+    const currentVote = userVotes[id] || null;
+    let newVoteType: 'up' | 'down' | null = voteType;
+    if (currentVote === voteType) {
+      // Remove vote
+      newVoteType = null;
+    }
+    try {
+      if (newVoteType) {
+        // Upsert the vote
+        const { error } = await supabase
+          .from('party_votes')
+          .upsert([
+            { party_id: id, user_id: user.id, vote_type: newVoteType }
+          ], { onConflict: 'party_id,user_id' });
+        if (error) throw error;
+      } else {
+        // Delete the vote
+        const { error } = await supabase
+          .from('party_votes')
+          .delete()
+          .eq('party_id', id)
+          .eq('user_id', user.id);
+        if (error) throw error;
+      }
+      // Update local userVotes state
+      setUserVotes(prev => ({ ...prev, [id]: newVoteType }));
+      // Re-aggregate votes
+      await aggregateVotes();
+    } catch (error) {
+      console.error('Error updating vote:', error);
+      setError('Failed to update vote. Please try again.');
+    }
+  };
 
   // Add this function to ensure user profile exists
   const ensureUserProfile = async () => {
@@ -402,56 +468,6 @@ function AppContent() {
     } catch (error) {
       console.error('Error adding party:', error);
       setError('Failed to create party. Please try again.');
-    }
-  };
-
-  const handleVote = async (id: number, voteType: 'up' | 'down') => {
-    // Find the party in the current state
-    const party = parties.find(p => p.id === id);
-    if (!party) return;
-
-    const currentVote = userVotes[id] || null;
-    let voteChange = 0;
-
-    if (currentVote === voteType) {
-      voteChange = voteType === 'up' ? -1 : 1;
-      setUserVotes(prev => ({ ...prev, [id]: null }));
-    } else if (currentVote === null) {
-      voteChange = voteType === 'up' ? 1 : -1;
-      setUserVotes(prev => ({ ...prev, [id]: voteType }));
-    } else {
-      voteChange = voteType === 'up' ? 2 : -2;
-      setUserVotes(prev => ({ ...prev, [id]: voteType }));
-    }
-
-    // Optimistically update the UI
-    setParties(prev =>
-      prev.map(p =>
-        p.id === id ? { ...p, votes: p.votes + voteChange } : p
-      )
-    );
-
-    // Persist the new vote count to Supabase
-    const newVoteCount = party.votes + voteChange;
-    const { error } = await supabase
-      .from('parties')
-      .update({ votes: newVoteCount })
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error updating votes:', error);
-      // Optionally, revert the optimistic update here if you want
-      return;
-    }
-
-    // Re-fetch parties to get the latest vote counts from the database
-    const { data: partiesData, error: partiesError } = await supabase
-      .from('parties_with_users')
-      .select('*')
-      .order('date', { ascending: true });
-
-    if (!partiesError && Array.isArray(partiesData)) {
-      setParties(partiesData);
     }
   };
 
@@ -901,9 +917,6 @@ function AppContent() {
                                   >
                                     <Box sx={{ flex: 1 }}>
                                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mr: 1 }}>
-                                          anonymous
-                                        </Typography>
                                         <Typography variant="caption" color="textSecondary">
                                           {formatCreationTime(comment.created_at)}
                                         </Typography>
