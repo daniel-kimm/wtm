@@ -413,7 +413,6 @@ function AppContent() {
             location: partyData.location,
             description: partyData.description,
             date: partyData.date.split('T')[0],
-            votes: 0,
             user_id: user?.id,
             latitude: partyData.latitude,
             longitude: partyData.longitude
