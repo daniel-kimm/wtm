@@ -159,7 +159,7 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>
-          Create New Party
+          create new party
         </Typography>
         <IconButton onClick={onClose} sx={{ color: 'white' }}>
           <CloseIcon />
@@ -171,7 +171,7 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Party Title"
+              label="party title"
               name="title"
               value={formData.title}
               onChange={handleChange}
@@ -191,7 +191,7 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
 
           <Grid item xs={12}>
             <Typography variant="subtitle1" sx={{ mb: 1, color: 'white' }}>
-              Select Location on Map
+              select location on map
             </Typography>
             <div ref={mapRef} style={mapContainerStyle} />
           </Grid>
@@ -199,11 +199,11 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Location Description"
+              label="location description"
               name="location"
               value={formData.location}
               required
-              placeholder="Click on the map to select location"
+              placeholder="click on the map to select location"
               InputProps={{ readOnly: true }}
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -221,7 +221,7 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Description"
+              label="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
@@ -243,7 +243,7 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Date"
+              label="date"
               name="date"
               type="datetime-local"
               value={formData.date}
@@ -286,7 +286,7 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
                 }
               }}
             >
-              Create Party
+              create party
             </Button>
           </Grid>
         </Grid>

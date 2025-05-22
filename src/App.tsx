@@ -360,18 +360,45 @@ function AppContent() {
         throw error;
       }
 
-      console.log('Successfully created party:', data);
-
-      // Re-fetch all parties to ensure we have the latest data
-      const { data: partiesData, error: partiesError } = await supabase
-        .from('parties_with_users')
-        .select('*')
-        .order('date', { ascending: true });
-
-      if (partiesError) throw partiesError;
-      setParties(partiesData);
-
+      // Optimistically add the new party
+      setParties(prev => [...prev, data]);
       setIsCreatePartyOpen(false);
+
+      // Helper to re-fetch with retries
+      const fetchPartiesWithRetry = async (retries = 3, delay = 500) => {
+        for (let i = 0; i < retries; i++) {
+          const { data: partiesData, error: partiesError } = await supabase
+            .from('parties_with_users')
+            .select('*')
+            .order('date', { ascending: true });
+
+          // If the new party is present and has latitude/longitude, update state and return
+          if (
+            !partiesError &&
+            Array.isArray(partiesData) &&
+            partiesData.some(
+              p =>
+                p.id === data.id &&
+                p.latitude != null &&
+                p.longitude != null
+            )
+          ) {
+            setParties(partiesData);
+            return;
+          }
+          // Wait before retrying
+          await new Promise(res => setTimeout(res, delay));
+        }
+        // Final attempt (even if not found)
+        const { data: partiesData } = await supabase
+          .from('parties_with_users')
+          .select('*')
+          .order('date', { ascending: true });
+        if (Array.isArray(partiesData)) setParties(partiesData);
+      };
+
+      // Call the retry fetch
+      fetchPartiesWithRetry();
     } catch (error) {
       console.error('Error adding party:', error);
       setError('Failed to create party. Please try again.');
@@ -582,7 +609,7 @@ function AppContent() {
                 boxShadow: '0 3px 5px 2px rgba(78, 42, 132, .3)',
               }}
             >
-              Sign Out
+              sign out
             </Button>
           </Paper>
         </Box>
@@ -628,7 +655,7 @@ function AppContent() {
                 <ListItemIcon>
                   <HomeIcon color="primary" />
                 </ListItemIcon>
-                <ListItemText primary="Home" />
+                <ListItemText primary="home" />
               </ListItem>
               <ListItem button onClick={() => {
                 setIsCreatePartyOpen(true);
@@ -637,14 +664,14 @@ function AppContent() {
                 <ListItemIcon>
                   <AddIcon color="primary" />
                 </ListItemIcon>
-                <ListItemText primary="Create Party" />
+                <ListItemText primary="create party" />
               </ListItem>
               <Divider />
               <ListItem button onClick={signOut}>
                 <ListItemIcon>
                   <LogoutIcon color="primary" />
                 </ListItemIcon>
-                <ListItemText primary="Sign Out" />
+                <ListItemText primary="sign out" />
               </ListItem>
             </List>
           </Box>
@@ -672,7 +699,7 @@ function AppContent() {
               ) : (
                 <>
                   <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 600, mb: 3 }}>
-                    parties @ nu
+                    parties @ northwestern
                   </Typography>
 
                   {isLoading ? (
@@ -701,7 +728,7 @@ function AppContent() {
                         onClick={() => setIsCreatePartyOpen(true)}
                         sx={{ mt: 2 }}
                       >
-                        Create Party
+                        create party
                       </Button>
                     </Paper>
                   ) : (
@@ -713,7 +740,7 @@ function AppContent() {
                               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                 <AccessTimeIcon sx={{ color: 'primary.light', mr: 1, fontSize: 20 }} />
                                 <Typography variant="body2" color="textSecondary">
-                                  Posted {formatCreationTime(party.created_at || '')}
+                                  posted {formatCreationTime(party.created_at || '')}
                                 </Typography>
                               </Box>
                               <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600, mb: 1 }}>
@@ -814,7 +841,7 @@ function AppContent() {
                           <Box sx={{ mt: 2, borderTop: 1, borderColor: 'divider', pt: 2 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                               <Typography variant="subtitle1" sx={{ fontWeight: 600, mr: 1 }}>
-                                Comments
+                                comments
                               </Typography>
                               <IconButton
                                 size="small"
@@ -830,7 +857,7 @@ function AppContent() {
                                   <TextField
                                     fullWidth
                                     size="small"
-                                    placeholder="Add a comment..."
+                                    placeholder="add a comment..."
                                     value={newComment}
                                     onChange={(e) => setNewComment(e.target.value)}
                                     sx={{ mb: 1 }}
@@ -841,7 +868,7 @@ function AppContent() {
                                     onClick={() => handleAddComment(party.id)}
                                     disabled={!newComment.trim()}
                                   >
-                                    Post Comment
+                                    post comment
                                   </Button>
                                 </Box>
                                 
