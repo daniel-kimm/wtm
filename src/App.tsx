@@ -720,7 +720,7 @@ function AppContent() {
                   ) : parties.length === 0 ? (
                     <Paper sx={{ p: 3, textAlign: 'center' }}>
                       <Typography color="textSecondary">
-                        No parties scheduled yet. Be the first to create one!
+                        no parties scheduled yet. be the first to create one!
                       </Typography>
                       <Button
                         variant="contained"
