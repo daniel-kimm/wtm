@@ -405,39 +405,49 @@ function AppContent() {
     }
   };
 
-  const handleVote = (id: number, voteType: 'up' | 'down') => {
+  const handleVote = async (id: number, voteType: 'up' | 'down') => {
+    let voteChange = 0;
     setParties(prev => prev.map(party => {
       if (party.id === id) {
-        const currentVote = userVotes[id] || null; // Convert undefined to null
-        let voteChange = 0;
-
-        console.log('Current vote:', currentVote);
-        console.log('New vote type:', voteType);
-        console.log('Current vote count:', party.votes);
-
+        const currentVote = userVotes[id] || null;
         if (currentVote === voteType) {
-          // If clicking the same vote type again, remove the vote
           voteChange = voteType === 'up' ? -1 : 1;
           setUserVotes(prev => ({ ...prev, [id]: null }));
-          console.log('Removing vote, change:', voteChange);
         } else if (currentVote === null) {
-          // If no previous vote, add the new vote
           voteChange = voteType === 'up' ? 1 : -1;
           setUserVotes(prev => ({ ...prev, [id]: voteType }));
-          console.log('Adding new vote, change:', voteChange);
         } else {
-          // If changing vote type, adjust by 2
           voteChange = voteType === 'up' ? 2 : -2;
           setUserVotes(prev => ({ ...prev, [id]: voteType }));
-          console.log('Changing vote type, change:', voteChange);
         }
-
-        const newVoteCount = party.votes + voteChange;
-        console.log('New vote count:', newVoteCount);
-        return { ...party, votes: newVoteCount };
+        return { ...party, votes: party.votes + voteChange };
       }
       return party;
     }));
+
+    // Persist the new vote count to Supabase
+    const party = parties.find(p => p.id === id);
+    if (!party) return;
+    const newVoteCount = party.votes + voteChange;
+    const { error } = await supabase
+      .from('parties')
+      .update({ votes: newVoteCount })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating votes:', error);
+      return;
+    }
+
+    // Re-fetch parties to get the latest vote counts from the database
+    const { data: partiesData, error: partiesError } = await supabase
+      .from('parties_with_users')
+      .select('*')
+      .order('date', { ascending: true });
+
+    if (!partiesError && Array.isArray(partiesData)) {
+      setParties(partiesData);
+    }
   };
 
   const handleDeleteParty = async (partyId: number) => {
