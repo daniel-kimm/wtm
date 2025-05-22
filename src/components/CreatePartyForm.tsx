@@ -51,18 +51,20 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
   const [selectedLocation, setSelectedLocation] = useState<google.maps.LatLng | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const markerRef = useRef<google.maps.Marker | null>(null);
 
-  // Cleanup function to remove all markers
-  const cleanupMarkers = () => {
-    markers.forEach(marker => marker.setMap(null));
-    setMarkers([]);
+  // Cleanup function to remove the marker
+  const cleanupMarker = () => {
+    if (markerRef.current) {
+      markerRef.current.setMap(null);
+      markerRef.current = null;
+    }
   };
 
   // Cleanup when form is closed or unmounts
   useEffect(() => {
     return () => {
-      cleanupMarkers();
+      cleanupMarker();
     };
   }, []);
 
@@ -70,7 +72,7 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
   useEffect(() => {
     if (!mapRef.current || map) return;
 
-    cleanupMarkers();
+    cleanupMarker();
 
     console.log('Initializing map in CreatePartyForm...');
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
@@ -100,15 +102,17 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
             location: `${e.latLng.lat().toFixed(6)}, ${e.latLng.lng().toFixed(6)}`
           }));
 
-          // Remove all existing markers
-          cleanupMarkers();
+          // Remove the previous marker before adding a new one
+          if (markerRef.current) {
+            markerRef.current.setMap(null);
+          }
 
           // Create new marker
           const newMarker = new google.maps.Marker({
             position: e.latLng,
             map: newMap,
           });
-          setMarkers([newMarker]);
+          markerRef.current = newMarker;
         }
       });
 
@@ -118,7 +122,7 @@ export function CreatePartyForm({ onClose, onAddParty, theme }: CreatePartyFormP
 
     return () => {
       document.head.removeChild(script);
-      cleanupMarkers();
+      cleanupMarker();
     };
   }, [mapRef.current]);
 
