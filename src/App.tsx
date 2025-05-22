@@ -902,7 +902,7 @@ function AppContent() {
                                     <Box sx={{ flex: 1 }}>
                                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 600, mr: 1 }}>
-                                          {comment.user_name || comment.user_email}
+                                          anonymous
                                         </Typography>
                                         <Typography variant="caption" color="textSecondary">
                                           {formatCreationTime(comment.created_at)}
