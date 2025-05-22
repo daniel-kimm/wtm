@@ -538,10 +538,10 @@ function AppContent() {
             }}
           >
             <Typography variant="h4" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
-              Welcome to WTM
+              welcome to wtm
             </Typography>
             <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary' }}>
-              Sign in with your Northwestern email to continue
+              sign in with your northwestern email to continue
             </Typography>
             <Button
               variant="contained"
@@ -555,7 +555,7 @@ function AppContent() {
                 boxShadow: '0 3px 5px 2px rgba(78, 42, 132, .3)',
               }}
             >
-              Sign in with Google
+              sign in with google
             </Button>
           </Paper>
         </Box>
@@ -588,14 +588,14 @@ function AppContent() {
             }}
           >
             <Typography variant="h4" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
-              Access Denied
+              access denied
             </Typography>
             <Typography variant="body1" sx={{ mb: 2, color: 'text.secondary' }}>
-              This platform is only available to Northwestern students.
-              Please sign in with your @northwestern.edu email address.
+              this platform is only available to northwestern students.
+              please sign in with your @northwestern.edu email address.
             </Typography>
             <Typography variant="body2" sx={{ mb: 4, color: 'text.secondary' }}>
-              Current email: {user.email}
+              current email: {user.email}
             </Typography>
             <Button
               variant="contained"
